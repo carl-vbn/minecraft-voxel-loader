@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "vxloader",
+  "version": "${version}",
+  "name": "VoxelLoader",
+  "description": "Load voxel structures and play voxel animations in Minecraft",
+  "authors": [
+    "carl-vbn"
+  ],
+  "contributors": [],
+  "contact": {},
+  "license": "Apache-2.0",
+  "icon": "assets/vxloader/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "carlvbn.vxloader.VoxelLoader"
+    ],
+    "client": [],
+    "server": []
+  },
+  "mixins": [],
+  "depends": {
+    "fabricloader": ">=0.11.6",
+    "fabric": "*"
+  }
+}
