@@ -15,7 +15,7 @@ import java.util.HashMap;
 public class VoxelStructure {
     private HashMap<BlockPos, Block> blocks;
 
-    public VoxelStructure(HashMap<BlockPos, Color> voxels) {
+    public VoxelStructure(World world, HashMap<BlockPos, Color> voxels) {
         blocks = new HashMap<>();
         HashMap<Color, Block> blockMap = new HashMap<>();
 
@@ -26,7 +26,7 @@ public class VoxelStructure {
             if (blockMap.containsKey(voxelColor)) {
                 block = blockMap.get(voxelColor);
             } else {
-                block = VoxelLoader.getInstance().getColoredBlockType(voxelColor);
+                block = VoxelLoader.getInstance().getColoredBlockType(world, voxelColor);
                 blockMap.put(voxelColor, block);
             }
 
@@ -34,7 +34,7 @@ public class VoxelStructure {
         }
     }
 
-    public VoxelStructure(HashMap<BlockPos, Color> voxels, @NotNull HashMap<Color, Block> blockMap) {
+    public VoxelStructure(World world, HashMap<BlockPos, Color> voxels, @NotNull HashMap<Color, Block> blockMap) {
         blocks = new HashMap<>();
 
         for (BlockPos pos : voxels.keySet()) {
@@ -44,7 +44,7 @@ public class VoxelStructure {
             if (blockMap.containsKey(voxelColor)) {
                 block = blockMap.get(voxelColor);
             } else {
-                block = VoxelLoader.getInstance().getColoredBlockType(voxelColor);
+                block = VoxelLoader.getInstance().getColoredBlockType(world, voxelColor);
                 blockMap.put(voxelColor, block);
             }
 
@@ -77,7 +77,7 @@ public class VoxelStructure {
         return blocks;
     }
 
-    public static VoxelStructure read(File file, HashMap<Color, Block> blockMap) {
+    public static VoxelStructure read(World world, File file, HashMap<Color, Block> blockMap) {
         StringBuilder sb = new StringBuilder(512);
         try {
             Reader r = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8);
@@ -105,11 +105,11 @@ public class VoxelStructure {
             }
         }
 
-        return blockMap != null ? new VoxelStructure(voxels, blockMap) : new VoxelStructure(voxels);
+        return blockMap != null ? new VoxelStructure(world, voxels, blockMap) : new VoxelStructure(world, voxels);
     }
 
-    public static VoxelStructure read(File file) {
-        return read(file, null);
+    public static VoxelStructure read(World world, File file) {
+        return read(world, file, null);
     }
 
     public static void place(VoxelStructure structure, World world, BlockPos pos) {

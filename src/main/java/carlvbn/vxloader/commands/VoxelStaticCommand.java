@@ -3,7 +3,6 @@ package carlvbn.vxloader.commands;
 import carlvbn.vxloader.VoxelStructure;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
@@ -31,14 +30,14 @@ public class VoxelStaticCommand {
         dispatcher.register(literal("vxs").redirect(baseNode));
     }
 
-    private static int execute(ServerCommandSource source, String filename) throws CommandSyntaxException {
+    private static int execute(ServerCommandSource source, String filename) {
         File file = new File(MAIN_DIRECTORY_NAME + File.separator + "voxelData" + File.separator + filename + (filename.endsWith(VOXEL_DATA_EXTENSION) ? "" : VOXEL_DATA_EXTENSION));
 
         if (file.exists()) {
             source.sendFeedback(Text.of("Loading '" + filename + "'..."), true);
 
             try {
-                VoxelStructure.place(VoxelStructure.read(file), source.getWorld(), new BlockPos(source.getPosition()));
+                VoxelStructure.place(VoxelStructure.read(source.getWorld(), file), source.getWorld(), new BlockPos(source.getPosition()));
 
                 source.sendFeedback(Text.of("Successfully loaded '" + filename + "'"), true);
             } catch (Exception e) {

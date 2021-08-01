@@ -3,11 +3,8 @@ package carlvbn.vxloader;
 import carlvbn.vxloader.commands.VoxelAnimationCommand;
 import carlvbn.vxloader.commands.VoxelStaticCommand;
 import net.fabricmc.api.ModInitializer;
-
-
 import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.minecraft.block.*;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
@@ -83,11 +80,11 @@ public class VoxelLoader implements ModInitializer {
         }
     }
 
-    public Block getColoredBlockType(Color color) {
+    public Block getColoredBlockType(World world, Color color) {
         Block closestColorBlock = null;
         int closestDifference = Integer.MAX_VALUE;
         for (Block block : averageBlockColors.keySet()) {
-            if (block.isTranslucent(block.getDefaultState(), MinecraftClient.getInstance().world, BlockPos.ORIGIN)) continue;
+            if (block.isTranslucent(block.getDefaultState(), world, BlockPos.ORIGIN)) continue;
 
             Color matColor = averageBlockColors.get(block);
             int redDiff = color.getRed()-matColor.getRed();

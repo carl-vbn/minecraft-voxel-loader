@@ -7,12 +7,14 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
+import net.fabricmc.api.EnvType;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.debug.DebugRenderer;
@@ -56,20 +58,32 @@ public class VoxelAnimationCommand {
     private static String screenshotSaveDirectoryPath;
     private static ServerPlayerEntity animationInvoker;
     private static boolean waitingForScreenshot; // If server is waiting for client to take screenshot
+    private static PreviewMode previewMode = PreviewMode.NONE;
+    private static int previewedFrame;
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
-        CommandNode<ServerCommandSource> baseNode = dispatcher.register(literal("voxelanimation").requires((source) -> source.hasPermissionLevel(2))
-            .then(literal("setpos").executes((context) -> setpos(context.getSource(), null)).then(argument("position", BlockPosArgumentType.blockPos()).executes((context) -> setpos(context.getSource(), BlockPosArgumentType.getBlockPos(context, "position")))))
-            .then(literal("load")
+        CommandNode<ServerCommandSource> baseNode = dispatcher.register((literal("voxelanimation").requires((source) -> source.hasPermissionLevel(2)))
+            .then(literal("setpos").requires((source) -> source.hasPermissionLevel(2)).executes((context) -> setpos(context.getSource(), null)).then(argument("position", BlockPosArgumentType.blockPos()).executes((context) -> setpos(context.getSource(), BlockPosArgumentType.getBlockPos(context, "position")))))
+            .then(literal("load").requires((source) -> source.hasPermissionLevel(2))
                 .then(argument("dirname", StringArgumentType.string())
-                        .executes((context) -> load(context.getSource(), StringArgumentType.getString(context, "dirname")))))
-            .then(literal("play")
+                        .executes((context) -> load(context.getSource(), StringArgumentType.getString(context, "dirname"))))
+                .executes((context) -> { context.getSource().sendError(Text.of("Please specify a directory name.")); return 0; }))
+            .then(literal("play").requires((source) -> source.hasPermissionLevel(2))
                 .then(argument("interval", IntegerArgumentType.integer(0))
-                        .executes((context) -> play(context.getSource(), IntegerArgumentType.getInteger(context, "interval"), null))))
-            .then(literal("record")
+                        .executes((context) -> play(context.getSource(), IntegerArgumentType.getInteger(context, "interval"), null)))
+                .executes((context) -> { context.getSource().sendError(Text.of("Please specify an interval.")); return 0; }))
+            .then(literal("record").requires((source) -> source.hasPermissionLevel(2))
                 .then(argument("interval", IntegerArgumentType.integer(0)).then(argument("screenshotdir", StringArgumentType.string())
                         .executes((context) -> play(context.getSource(), IntegerArgumentType.getInteger(context, "interval"), StringArgumentType.getString(context, "screenshotdir"))))
-                )));
+                    .executes((context) -> { context.getSource().sendError(Text.of("Please specify an output directory.")); return 0; }))
+                .executes((context) -> { context.getSource().sendError(Text.of("Please specify an interval.")); return 0; }))
+            .then(literal("preview").requires((source) -> source.hasPermissionLevel(2))
+                .then(literal("hide").executes((context) -> preview(context.getSource(), PreviewMode.NONE, -1)))
+                .then(literal("bounds").executes((context) -> preview(context.getSource(), PreviewMode.BOUNDS, -1)))
+                .then(literal("frame").then(argument("frame_index", IntegerArgumentType.integer(0)).executes((context) -> preview(context.getSource(), PreviewMode.FRAME, IntegerArgumentType.getInteger(context, "frame_index")))).executes((context) -> { context.getSource().sendError(Text.of("Please specify a frame.")); return 0; }))
+                .executes((context) -> { context.getSource().sendError(Text.of("Please specify a mode.")); return 0; }))
+            .then(literal("stop").requires((source) -> source.hasPermissionLevel(2)).executes((context) -> stop(context.getSource())))
+        );
 
         dispatcher.register(literal("vxanim").redirect(baseNode));
 
@@ -107,19 +121,47 @@ public class VoxelAnimationCommand {
             }
         });
 
-        ClientPlayNetworking.registerGlobalReceiver(screenshotOrderIdentifier, (client, handler, buffer, responseSender) -> {
-            client.execute(() -> {
-                NativeImage screenshot = ScreenshotRecorder.takeScreenshot(MinecraftClient.getInstance().getWindow().getWidth(), MinecraftClient.getInstance().getWindow().getHeight(), MinecraftClient.getInstance().getFramebuffer());
+        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
+            ClientPlayNetworking.registerGlobalReceiver(screenshotOrderIdentifier, (client, handler, buffer, responseSender) -> {
+                client.execute(() -> {
+                    NativeImage screenshot = ScreenshotRecorder.takeScreenshot(MinecraftClient.getInstance().getWindow().getWidth(), MinecraftClient.getInstance().getWindow().getHeight(), MinecraftClient.getInstance().getFramebuffer());
 
-                PacketByteBuf packetBytes = PacketByteBufs.create();
-                try {
-                    packetBytes.writeBytes(screenshot.getBytes());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                responseSender.sendPacket(screenshotOrderResponseIdentifier, packetBytes);
+                    PacketByteBuf packetBytes = PacketByteBufs.create();
+                    try {
+                        packetBytes.writeBytes(screenshot.getBytes());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    responseSender.sendPacket(screenshotOrderResponseIdentifier, packetBytes);
+                });
             });
-        });
+
+            WorldRenderEvents.BEFORE_DEBUG_RENDER.register(new WorldRenderEvents.DebugRender() {
+                @Override
+                public void beforeDebugRender(WorldRenderContext context) {
+                    if (frames != null && frames.size() > 0 && currentFrameIndex == -1) {
+                        GlStateManager._enableBlend();
+                        GlStateManager._enableDepthTest();
+                        switch (previewMode) {
+                            case NONE:
+                                break;
+                            case BOUNDS:
+                                DebugRenderer.drawBox(minPos.add(position), maxPos.add(position), 1.0F, 0.0F, 0.5F, 0.2F);
+                                break;
+                            case FRAME:
+                                if (previewedFrame < frames.size()) {
+                                    for (BlockPos pos : frames.get(previewedFrame).getBlocks().keySet()) {
+                                        DebugRenderer.drawBox(position.add(pos), 0.0F, 1.0F, 0.0F, 0.5F, 0.2F);
+                                    }
+                                }
+                                break;
+                        }
+                        GlStateManager._disableDepthTest();
+                        GlStateManager._disableBlend();
+                    }
+                }
+            });
+        }
 
         ServerPlayNetworking.registerGlobalReceiver(screenshotOrderResponseIdentifier, (server, player, handler, buffer, responseSender) -> {
             int screenshotFrameIndex = currentFrameIndex;
@@ -140,23 +182,6 @@ public class VoxelAnimationCommand {
             if (waitingForScreenshot) {
                 currentFrameIndex++;
                 waitingForScreenshot = false;
-            }
-        });
-
-        // WARNING This part will probably cause problems on a dedicated server as a server can't render anything
-        WorldRenderEvents.BEFORE_DEBUG_RENDER.register(new WorldRenderEvents.DebugRender() {
-            @Override
-            public void beforeDebugRender(WorldRenderContext context) {
-                if (currentFrameIndex == -1 && frames != null && frames.size() > 0) {
-                    GlStateManager._enableBlend();
-                    GlStateManager._enableDepthTest();
-                    for (BlockPos pos : frames.get(0).getBlocks().keySet()) {
-                        DebugRenderer.drawBox(position.add(pos), 0.0F, 1.0F, 0.0F, 0.5F, 0.2F);
-                    }
-                    //DebugRenderer.drawBox(minPos.add(position), maxPos.add(position), 1.0F, 0.0F, 0.5F, 0.2F);
-                    GlStateManager._disableDepthTest();
-                    GlStateManager._disableBlend();
-                }
             }
         });
     }
@@ -193,7 +218,7 @@ public class VoxelAnimationCommand {
             }).forEachOrdered((String filename) -> {
                 if (filename.endsWith(VOXEL_DATA_EXTENSION)) {
                     try {
-                        VoxelStructure structure = VoxelStructure.read(new File(directory, filename), blockMap);
+                        VoxelStructure structure = VoxelStructure.read(source.getWorld(), new File(directory, filename), blockMap);
                         frames.add(structure);
 
                         for (BlockPos pos : structure.getBlocks().keySet()) {
@@ -227,6 +252,11 @@ public class VoxelAnimationCommand {
     }
 
     private static int play(ServerCommandSource source, int interval, @Nullable  String screenshotDir) throws CommandSyntaxException {
+        if (frames == null || frames.size() == 0) {
+            source.sendError(Text.of("No animation loaded."));
+            return 0;
+        }
+
         source.sendFeedback(Text.of("Animation starting now with an interval of "+interval+" ticks."), true);
 
         if (screenshotDir != null) {
@@ -246,4 +276,26 @@ public class VoxelAnimationCommand {
         VoxelAnimationCommand.interval = interval;
         return 1;
     }
+
+    private static int preview(ServerCommandSource source, PreviewMode mode, int frameIndex) {
+        previewMode = mode;
+        previewedFrame = frameIndex;
+        source.sendFeedback(Text.of("Preview mode updated."), false);
+        return 1;
+    }
+
+    private static int stop(ServerCommandSource source) {
+        if (currentFrameIndex != -1) {
+            currentFrameIndex = -1;
+            waitingForScreenshot = false;
+            source.sendFeedback(Text.of("Playback stopped."), true);
+        } else {
+            source.sendError(Text.of("No animation is in progress."));
+        }
+        return 1;
+    }
+}
+
+enum PreviewMode {
+    NONE, BOUNDS, FRAME
 }
