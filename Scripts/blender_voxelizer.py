@@ -18,13 +18,13 @@ import os
 from mathutils import Vector
 from math import floor
 
-def create_blocks(obj):
+def create_blocks(obj, origin=Vector((0,0,0))):
     bm = bmesh.new()
     bm.from_object(obj, depsgraph)
     bm.verts.ensure_lookup_table()
     bm.verts.index_update()
     
-    blocks = []
+    blocks = {}
     
     # Extract vertex colors if present
     vertex_colors = [(1,1,1)] * len(bm.verts)
@@ -50,7 +50,7 @@ def create_blocks(obj):
     
     for vertex in bm.verts:
         vertex_pos = obj.matrix_world @ vertex.co
-        block_pos = vertex_pos / block_size
+        block_pos = (vertex_pos - origin) / block_size
         block_x = floor(block_pos.x)
         block_y = floor(block_pos.y)
         block_z = floor(block_pos.z)
@@ -58,28 +58,16 @@ def create_blocks(obj):
         if (block_x,block_y,block_z) not in blocks:
             vertex_color = vertex_colors[vertex.index]
             # vertex_color = (max(0,min(1.0, block_z/30)), max(0,min(1.0, block_z/100)), 0.0) # This was used to make a gradient based on height
-            blocks.append((block_x,block_y,block_z,floor(vertex_color[0]*255),floor(vertex_color[1]*255),floor(vertex_color[2]*255)))
-            
+            blocks[block_x,block_y,block_z] = (floor(vertex_color[0]*255),floor(vertex_color[1]*255),floor(vertex_color[2]*255))
+                    
     bm.free()
     return blocks
 
-'''
-def show_blocks(blocks):
-    bpy.ops.object.select_all(action='DESELECT')
-    for obj in bpy.data.objects:
-        if 'Cube' in obj.name:
-            obj.select_set(True)
-    bpy.ops.object.delete()
-    
-    for block_pos in blocks:
-        block_x,block_y,block_z = block_pos
-        bpy.ops.mesh.primitive_cube_add(location=(block_x * block_size, block_y * block_size, block_z * block_size))
-        bpy.context.object.scale = (block_size/2, block_size/2, block_size/2)
-'''
-
 def save_blocks(blocks, filename):
     with open(filename, 'w') as f:
-        f.write(";".join([f'{block[0]},{block[2]},{block[1]},{block[3]},{block[4]},{block[5]}' for block in blocks])) # Swap Y and Z for compatibility with Minecraft
+        for block_pos in blocks:
+            block_color = blocks[block_pos]
+            f.write(f'{block_pos[0]},{block_pos[2]},{-block_pos[1]},{block_color[0]},{block_color[1]},{block_color[2]};') # Swap Y and Z for compatibility with Minecraft and take the opposite of Y to correct mirroring
       
 class VOXELIZER_PT_panel(bpy.types.Panel):
     bl_idname = "VOXELIZER_PT_panel"      # Unique identifier for buttons and menu items to reference.

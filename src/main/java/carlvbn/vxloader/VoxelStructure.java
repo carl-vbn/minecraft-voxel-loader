@@ -97,7 +97,7 @@ public class VoxelStructure {
             String[] positionStrings = data.split(";");
             for (String positionString : positionStrings) {
                 String[] voxelComponents = positionString.split(","); // X,Y,Z,R,G,B (RGB might not be present)
-                BlockPos pos = new BlockPos(-Integer.parseInt(voxelComponents[0]), Integer.parseInt(voxelComponents[1]), Integer.parseInt(voxelComponents[2])); // During the process, the models seems to get mirrored. The '-' before the x component is there to correct that.
+                BlockPos pos = new BlockPos(Integer.parseInt(voxelComponents[0]), Integer.parseInt(voxelComponents[1]), Integer.parseInt(voxelComponents[2]));
 
                 Color voxelColor = voxelComponents.length < 6 ? Color.WHITE : new Color(Integer.parseInt(voxelComponents[3]), Integer.parseInt(voxelComponents[4]), Integer.parseInt(voxelComponents[5]));
 

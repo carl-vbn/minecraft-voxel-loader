@@ -68,7 +68,7 @@ public class VoxelLoader implements ModInitializer {
                     String[] pathElements = splitLine[0].split("/");
                     String blockName = pathElements[pathElements.length-1].replace(".png", "");
                     Block block = Registry.BLOCK.get(new Identifier("minecraft", blockName));
-                    if (!(block instanceof FallingBlock) && !(block instanceof FluidBlock) && !blockName.contains("coral") && block != Blocks.SPAWNER && !(block instanceof ShulkerBoxBlock)) { // Coral changes color after being placed
+                    if (!(block instanceof FallingBlock) && !(block instanceof FluidBlock) && !blockName.contains("coral") && block != Blocks.SPAWNER && !(block instanceof ShulkerBoxBlock)) { // TODO Make a better system for filtering out unusable blocks
                         String[] rgbValues = splitLine[1].split(",");
                         Color color = new Color(Integer.parseInt(rgbValues[0]), Integer.parseInt(rgbValues[1]), Integer.parseInt(rgbValues[2]));
                         averageBlockColors.put(block, color);
