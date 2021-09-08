@@ -124,7 +124,7 @@ public class VoxelAnimationCommand {
         if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
             ClientPlayNetworking.registerGlobalReceiver(screenshotOrderIdentifier, (client, handler, buffer, responseSender) -> {
                 client.execute(() -> {
-                    NativeImage screenshot = ScreenshotRecorder.takeScreenshot(MinecraftClient.getInstance().getWindow().getWidth(), MinecraftClient.getInstance().getWindow().getHeight(), MinecraftClient.getInstance().getFramebuffer());
+                    NativeImage screenshot = ScreenshotRecorder.takeScreenshot(MinecraftClient.getInstance().getFramebuffer());
 
                     PacketByteBuf packetBytes = PacketByteBufs.create();
                     try {
