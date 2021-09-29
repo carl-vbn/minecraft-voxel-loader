@@ -32,7 +32,7 @@ public class VoxelLoader implements ModInitializer {
     public static final String VOXEL_DATA_EXTENSION = ".blocks";
 
     private static VoxelLoader instance;
-    private static HashMap<Block, Color> averageBlockColors;
+    private static HashMap<Block, Color> blockColorMap;
 
     @Override
     public void onInitialize() {
@@ -48,8 +48,8 @@ public class VoxelLoader implements ModInitializer {
         if (!dataDir.exists())
             dataDir.mkdir();
 
-        generateBlockColorMap();
-        log(Level.INFO, "Found colors for "+averageBlockColors.size()+" blocks.");
+        blockColorMap = loadBlockColorMap();
+        log(Level.INFO, "Found colors for "+ blockColorMap.size()+" blocks.");
 
         CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
             VoxelStaticCommand.register(dispatcher);
@@ -57,36 +57,35 @@ public class VoxelLoader implements ModInitializer {
         });
     }
 
-    private void generateBlockColorMap() {
-        averageBlockColors = new HashMap<>();
+    private HashMap<Block, Color> loadBlockColorMap() {
+        HashMap<Block,Color> map = new HashMap<>();
 
         try {
             List<String> lines = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/average_colors.txt"), StandardCharsets.UTF_8)).lines().collect(Collectors.toList());
             for (String line : lines) {
                 String[] splitLine = line.split(":");
-                if (splitLine[0].startsWith("assets/minecraft/textures/block/")) {
-                    String[] pathElements = splitLine[0].split("/");
-                    String blockName = pathElements[pathElements.length-1].replace(".png", "");
-                    Block block = Registry.BLOCK.get(new Identifier("minecraft", blockName));
-                    if (!(block instanceof FallingBlock) && !(block instanceof FluidBlock) && !blockName.contains("coral") && block != Blocks.SPAWNER && !(block instanceof ShulkerBoxBlock)) { // TODO Make a better system for filtering out unusable blocks
-                        String[] rgbValues = splitLine[1].split(",");
-                        Color color = new Color(Integer.parseInt(rgbValues[0]), Integer.parseInt(rgbValues[1]), Integer.parseInt(rgbValues[2]));
-                        averageBlockColors.put(block, color);
-                    }
-                }
+                String blockName = splitLine[0];
+
+                Block block = Registry.BLOCK.get(new Identifier("minecraft", blockName));
+
+                String[] rgbValues = splitLine[1].split(",");
+                Color color = new Color(Integer.parseInt(rgbValues[0]), Integer.parseInt(rgbValues[1]), Integer.parseInt(rgbValues[2]));
+                map.put(block, color);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        return map;
     }
 
     public Block getColoredBlockType(World world, Color color) {
         Block closestColorBlock = null;
         int closestDifference = Integer.MAX_VALUE;
-        for (Block block : averageBlockColors.keySet()) {
+        for (Block block : blockColorMap.keySet()) {
             if (block.isTranslucent(block.getDefaultState(), world, BlockPos.ORIGIN)) continue;
 
-            Color matColor = averageBlockColors.get(block);
+            Color matColor = blockColorMap.get(block);
             int redDiff = color.getRed()-matColor.getRed();
             int greenDiff = color.getGreen()-matColor.getGreen();
             int blueDiff = color.getBlue()-matColor.getBlue();

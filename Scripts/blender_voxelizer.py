@@ -18,6 +18,8 @@ import os
 from mathutils import Vector
 from math import floor
 
+BLOCK_SIZE = 1 # How many blender units equivelate to 1 Minecraft block (higher values reduce size of structure in the game)
+
 def create_blocks(obj, origin=Vector((0,0,0))):
     bm = bmesh.new()
     bm.from_object(obj, depsgraph)
@@ -27,7 +29,7 @@ def create_blocks(obj, origin=Vector((0,0,0))):
     blocks = {}
     
     # Extract vertex colors if present
-    vertex_colors = [(1,1,1)] * len(bm.verts)
+    vertex_colors = [(1.0,1.0,1.0)] * len(bm.verts)
     if image_texture is not None:
         uv_layer = bm.loops.layers.uv.active
         
@@ -50,13 +52,13 @@ def create_blocks(obj, origin=Vector((0,0,0))):
     
     for vertex in bm.verts:
         vertex_pos = obj.matrix_world @ vertex.co
-        block_pos = (vertex_pos - origin) / block_size
+        block_pos = (vertex_pos - origin) / BLOCK_SIZE
         block_x = floor(block_pos.x)
         block_y = floor(block_pos.y)
         block_z = floor(block_pos.z)
         
-        if (block_x,block_y,block_z) not in blocks:
-            vertex_color = vertex_colors[vertex.index]
+        vertex_color = vertex_colors[vertex.index]
+        if (block_x,block_y,block_z) not in blocks or vertex_color[0] < blocks[(block_x,block_y,block_z)][0]:
             # vertex_color = (max(0,min(1.0, block_z/30)), max(0,min(1.0, block_z/100)), 0.0) # This was used to make a gradient based on height
             blocks[block_x,block_y,block_z] = (floor(vertex_color[0]*255),floor(vertex_color[1]*255),floor(vertex_color[2]*255))
                     
@@ -118,7 +120,6 @@ class Voxelizer_OT_operator(bpy.types.Operator):
             self.report({"ERROR"}, "No object selected.")
             return {"CANCELLED"}
         
-        obj = context.selected_objects[0]
         bpy.ops.wm.save_mainfile() # In case something goes wrong
 
         if image_texture is not None:
@@ -126,13 +127,16 @@ class Voxelizer_OT_operator(bpy.types.Operator):
         else:
             print("Using vertex colors")
 
-        block_size = 1 # Size of a minecraft block in meters (can be changed to alter the blender/minecraft size ratio)
         for frame in range(bpy.context.scene.vx_start_frame_prop, bpy.context.scene.vx_end_frame_prop+1):
             bpy.context.scene.frame_set(frame)
-            blocks = create_blocks(obj)
+            blocks = {}
+            for obj in context.selected_objects:
+                blocks.update(create_blocks(obj))
             save_blocks(blocks, os.path.join(output_dir,f'{frame}.blocks'))
             print("[Voxelizer] Saved frame "+str(frame))
-
+            
+            
+        blocks = None
         return {"FINISHED"}
 
 

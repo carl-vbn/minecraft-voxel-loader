@@ -105,10 +105,11 @@ public class VoxelAnimationCommand {
                         waitingForScreenshot = false;
                     } else { // Animation in progress
                         if (currentFrameIndex > 0) { // Not first frame
-                            VoxelStructure.place(frames.get(currentFrameIndex).difference(frames.get(currentFrameIndex-1)), world, position); // Replace last structure
+                            VoxelStructure.place(frames.get(currentFrameIndex).difference(frames.get(currentFrameIndex - 1)), world, position); // Replace last structure
                         } else {
                             VoxelStructure.place(frames.get(currentFrameIndex), world, position);
                         }
+
 
                         if (!waitingForScreenshot) {
                             currentFrameIndex++;
@@ -124,7 +125,7 @@ public class VoxelAnimationCommand {
         if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
             ClientPlayNetworking.registerGlobalReceiver(screenshotOrderIdentifier, (client, handler, buffer, responseSender) -> {
                 client.execute(() -> {
-                    NativeImage screenshot = ScreenshotRecorder.takeScreenshot(MinecraftClient.getInstance().getWindow().getWidth(), MinecraftClient.getInstance().getWindow().getHeight(), MinecraftClient.getInstance().getFramebuffer());
+                    NativeImage screenshot = ScreenshotRecorder.takeScreenshot(MinecraftClient.getInstance().getFramebuffer());
 
                     PacketByteBuf packetBytes = PacketByteBufs.create();
                     try {
@@ -154,6 +155,7 @@ public class VoxelAnimationCommand {
                                         DebugRenderer.drawBox(position.add(pos), 0.0F, 1.0F, 0.0F, 0.5F, 0.2F);
                                     }
                                 }
+
                                 break;
                         }
                         GlStateManager._disableDepthTest();
@@ -207,6 +209,7 @@ public class VoxelAnimationCommand {
             minPos = null;
             maxPos = null;
             HashMap<Color, Block> blockMap = new HashMap<>();
+
             Arrays.stream(directory.list()).sorted((o1, o2) -> {
                 o1 = o1.replace(VOXEL_DATA_EXTENSION, "");
                 o2 = o2.replace(VOXEL_DATA_EXTENSION, "");
@@ -224,22 +227,29 @@ public class VoxelAnimationCommand {
                         for (BlockPos pos : structure.getBlocks().keySet()) {
                             if (minPos == null) minPos = pos;
                             else {
-                                if (pos.getX() < minPos.getX()) minPos = new BlockPos(pos.getX(), minPos.getY(), minPos.getZ());
-                                if (pos.getY() < minPos.getY()) minPos = new BlockPos(minPos.getX(), pos.getY(), minPos.getZ());
-                                if (pos.getZ() < minPos.getZ()) minPos = new BlockPos(minPos.getX(), minPos.getY(), pos.getZ());
+                                if (pos.getX() < minPos.getX())
+                                    minPos = new BlockPos(pos.getX(), minPos.getY(), minPos.getZ());
+                                if (pos.getY() < minPos.getY())
+                                    minPos = new BlockPos(minPos.getX(), pos.getY(), minPos.getZ());
+                                if (pos.getZ() < minPos.getZ())
+                                    minPos = new BlockPos(minPos.getX(), minPos.getY(), pos.getZ());
                             }
                             if (maxPos == null) maxPos = pos;
                             else {
-                                if (pos.getX() > maxPos.getX()) maxPos = new BlockPos(pos.getX(), maxPos.getY(), maxPos.getZ());
-                                if (pos.getY() > maxPos.getY()) maxPos = new BlockPos(maxPos.getX(), pos.getY(), maxPos.getZ());
-                                if (pos.getZ() > maxPos.getZ()) maxPos = new BlockPos(maxPos.getX(), maxPos.getY(), pos.getZ());
+                                if (pos.getX() > maxPos.getX())
+                                    maxPos = new BlockPos(pos.getX(), maxPos.getY(), maxPos.getZ());
+                                if (pos.getY() > maxPos.getY())
+                                    maxPos = new BlockPos(maxPos.getX(), pos.getY(), maxPos.getZ());
+                                if (pos.getZ() > maxPos.getZ())
+                                    maxPos = new BlockPos(maxPos.getX(), maxPos.getY(), pos.getZ());
                             }
 
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
-                        source.sendError(Text.of("Loading error ("+filename+"): "+e.toString()));
+                        source.sendError(Text.of("Loading error (" + filename + "): " + e.toString()));
                     }
+
                 }
             });
 
@@ -280,6 +290,7 @@ public class VoxelAnimationCommand {
     private static int preview(ServerCommandSource source, PreviewMode mode, int frameIndex) {
         previewMode = mode;
         previewedFrame = frameIndex;
+
         source.sendFeedback(Text.of("Preview mode updated."), false);
         return 1;
     }
