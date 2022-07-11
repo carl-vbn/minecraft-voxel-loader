@@ -1,4 +1,3 @@
-
 # Minecraft Voxel Loader
 
 A Fabric Mod and a set of Python scripts to load and play 3D animations inside Minecraft.  
@@ -21,7 +20,6 @@ The voxelization will only work on one object at the time, but the `Scripts/sequ
 ### 3. The Mod
 The mod can be built and launched from source or installed using the provided `.jar`file.
 It requires the Fabric Mod loader. Once installed, drag the mod file into your `mods` folder located inside your `.minecraft` directory. You will also need to download the Fabric API mod (which is different from the loader) and place it in the `mods` folder as well.
-**The recording feature of the mod only seems to work with Minecraft 1.17 (not 1.17.1), so be careful to install that version of the Fabric Loader and API.** 
 Once installed, simply start the game using the Fabric profile. You should have access to the added commands.  
   
 **Commands (only usable when having access to cheats in the world/server)**:
