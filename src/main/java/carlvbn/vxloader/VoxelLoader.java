@@ -2,9 +2,13 @@ package carlvbn.vxloader;
 
 import carlvbn.vxloader.commands.VoxelAnimationCommand;
 import carlvbn.vxloader.commands.VoxelStaticCommand;
+import com.mojang.brigadier.CommandDispatcher;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.block.*;
+import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
@@ -51,7 +55,7 @@ public class VoxelLoader implements ModInitializer {
         blockColorMap = loadBlockColorMap();
         log(Level.INFO, "Found colors for "+ blockColorMap.size()+" blocks.");
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             VoxelStaticCommand.register(dispatcher);
             VoxelAnimationCommand.register(dispatcher);
         });

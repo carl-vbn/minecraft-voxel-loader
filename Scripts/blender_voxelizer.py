@@ -120,7 +120,10 @@ class Voxelizer_OT_operator(bpy.types.Operator):
             self.report({"ERROR"}, "No object selected.")
             return {"CANCELLED"}
         
-        bpy.ops.wm.save_mainfile() # In case something goes wrong
+        try:
+            bpy.ops.wm.save_mainfile() # In case something goes wrong
+        except:
+            print("[Voxelizer] Failed to save file")
 
         if image_texture is not None:
             print("Using image texture for colors")

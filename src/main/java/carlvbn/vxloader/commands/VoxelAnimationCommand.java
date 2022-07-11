@@ -28,7 +28,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.io.File;
@@ -188,7 +187,7 @@ public class VoxelAnimationCommand {
         });
     }
 
-    private static int setpos(ServerCommandSource source, @Nullable BlockPos position) {
+    private static int setpos(ServerCommandSource source, BlockPos position) {
         VoxelAnimationCommand.position = position == null ? new BlockPos(source.getPosition()) : position;
         VoxelAnimationCommand.world = source.getWorld();
         source.sendFeedback(Text.of("Position set to "+VoxelAnimationCommand.position.getX()+" "+VoxelAnimationCommand.position.getY()+" "+VoxelAnimationCommand.position.getZ()), true);
@@ -261,7 +260,7 @@ public class VoxelAnimationCommand {
         return 1;
     }
 
-    private static int play(ServerCommandSource source, int interval, @Nullable  String screenshotDir) throws CommandSyntaxException {
+    private static int play(ServerCommandSource source, int interval, String screenshotDir) throws CommandSyntaxException {
         if (frames == null || frames.size() == 0) {
             source.sendError(Text.of("No animation loaded."));
             return 0;
