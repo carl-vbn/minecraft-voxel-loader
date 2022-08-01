@@ -18,7 +18,7 @@ import os
 from mathutils import Vector
 from math import floor
 
-BLOCK_SIZE = 1 # How many blender units equivelate to 1 Minecraft block (higher values reduce size of structure in the game)
+BLOCK_SIZE = 1 # Changes how many blender units are equivalent to 1 Minecraft block (higher values reduce size of structure in the game)
 
 def create_blocks(obj, origin=Vector((0,0,0))):
     bm = bmesh.new()
