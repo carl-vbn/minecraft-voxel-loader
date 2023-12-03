@@ -1,5 +1,9 @@
 # Minecraft Voxel Loader
 
+[Video posted to my YouTube channel showcasing the project and its development process:](https://www.youtube.com/watch?v=PB0W_gOHxVc)
+
+[![Video thumbnail](https://i.ytimg.com/vi/PB0W_gOHxVc/hqdefault.jpg?sqp=-oaymwEcCNACELwBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCKUzuMyac8mYnmV3wVjxWVNCpGtA)](https://www.youtube.com/watch?v=PB0W_gOHxVc)
+
 A Fabric Mod and a set of Python scripts to load and play 3D animations inside Minecraft.  
 **All scripts including the Blender extension are located inside the  `Scripts`  directory. All other files relate to the Fabric Mod.**
 
